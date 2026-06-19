@@ -1,0 +1,44 @@
+cat > frontend/index.html << 'EOF'
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Voto Electrónico</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Sistema de Voto Electrónico</h1>
+            <p>Grupo X - Validación de Sufragio</p>
+        </header>
+
+        <div class="main-content">
+            <div class="card">
+                <h2>Emitir Voto</h2>
+                <div class="form-group">
+                    <label for="rutInput">Ingresa tu RUT:</label>
+                    <input type="text" id="rutInput" placeholder="Ej: 12345678-9" />
+                    <button id="voteButton" onclick="emitirVoto()">Emitir Voto</button>
+                </div>
+                <div id="resultado" class="result-box"></div>
+            </div>
+
+            <div class="card">
+                <h2>Estado del Sistema</h2>
+                <div id="estadoSistema">
+                    <p>Votos emitidos: <span id="totalVotos">0</span></p>
+                    <p>Último evento: <span id="ultimoEvento">Ninguno</span></p>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>© 2026 - Sistema de Voto Electrónico | Despliegue Continuo</p>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
+EOF
