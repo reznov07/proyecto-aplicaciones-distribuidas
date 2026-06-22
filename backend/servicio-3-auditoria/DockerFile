@@ -1,0 +1,22 @@
+# --- ETAPA 1: CONSTRUCCIÓN (BUILDER) ---
+FROM node:18-alpine AS builder
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+RUN npm ci
+COPY . .
+
+# --- ETAPA 2: PRODUCCIÓN (ENTORNO LIGERO) ---
+FROM node:18-alpine
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+RUN npm ci --only=production
+COPY --from=builder /usr/src/app ./
+
+ENV NODE_ENV=production
+
+# Este servicio tampoco expone puertos públicos ya que reacciona de forma asíncrona a RabbitMQ
+CMD ["node", "src/index.js"]
