@@ -43,7 +43,7 @@ services:
       - data-padron:/var/lib/postgresql/data
 
   servicio-padron:
-    build: ./servicio-2-patron
+    build: ./servicio-2-padron
     container_name: s2-padron
     environment:
       - DB_URI=postgres://postgres:secret_padron@db-padron:5432/db_padron
