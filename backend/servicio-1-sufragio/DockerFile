@@ -1,1 +1,29 @@
- 
+# --- ETAPA 1: CONSTRUCCIÓN (BUILDER) ---
+FROM node:18-alpine AS builder
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+
+# CAMBIO AQUÍ: Usamos install en vez de ci
+RUN npm install
+
+COPY . .
+
+# --- ETAPA 2: PRODUCCIÓN (ENTORNO LIGERO) ---
+FROM node:18-alpine
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+
+# CAMBIO AQUÍ: Usamos install con omit=dev para que sea Alpine real y ligero
+RUN npm install --omit=dev
+
+COPY --from=builder /usr/src/app ./
+
+ENV NODE_ENV=production
+
+EXPOSE 3001
+
+CMD ["node", "src/index.js"]
