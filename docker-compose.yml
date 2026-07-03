@@ -1,0 +1,76 @@
+version: "3.8"
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: evoting-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-sufragio:
+    image: postgres:15-alpine
+    container_name: evoting-postgres-sufragio
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: db_sufragio
+      POSTGRES_USER: user_sufragio
+      POSTGRES_PASSWORD: pass_sufragio
+    volumes:
+      - postgres_sufragio_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user_sufragio -d db_sufragio"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-padron:
+    image: postgres:15-alpine
+    container_name: evoting-postgres-padron
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: db_padron
+      POSTGRES_USER: user_padron
+      POSTGRES_PASSWORD: pass_padron
+    volumes:
+      - postgres_padron_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user_padron -d db_padron"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-auditoria:
+    image: postgres:15-alpine
+    container_name: evoting-postgres-auditoria
+    ports:
+      - "5435:5432"
+    environment:
+      POSTGRES_DB: db_auditoria
+      POSTGRES_USER: user_auditoria
+      POSTGRES_PASSWORD: pass_auditoria
+    volumes:
+      - postgres_auditoria_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user_auditoria -d db_auditoria"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  rabbitmq_data:
+  postgres_sufragio_data:
+  postgres_padron_data:
+  postgres_auditoria_data:
