@@ -1,8 +1,7 @@
 version: "3.8"
-
 services:
   rabbitmq:
-    image: rabbitmq:3.12-management
+    image: rabbitmq:3.12-management-alpine
     container_name: evoting-rabbitmq
     ports:
       - "5672:5672"
@@ -29,6 +28,7 @@ services:
       POSTGRES_PASSWORD: pass_sufragio
     volumes:
       - postgres_sufragio_data:/var/lib/postgresql/data
+      - ./db-init/init-sufragio.sql:/docker-entrypoint-initdb.d/init-sufragio.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user_sufragio -d db_sufragio"]
       interval: 10s
@@ -46,6 +46,7 @@ services:
       POSTGRES_PASSWORD: pass_padron
     volumes:
       - postgres_padron_data:/var/lib/postgresql/data
+      - ./db-init/init-padron.sql:/docker-entrypoint-initdb.d/init-padron.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user_padron -d db_padron"]
       interval: 10s
@@ -63,6 +64,7 @@ services:
       POSTGRES_PASSWORD: pass_auditoria
     volumes:
       - postgres_auditoria_data:/var/lib/postgresql/data
+      - ./db-init/init-auditoria.sql:/docker-entrypoint-initdb.d/init-auditoria.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user_auditoria -d db_auditoria"]
       interval: 10s
