@@ -71,6 +71,75 @@ services:
       timeout: 5s
       retries: 5
 
+  servicio-sufragio:
+    build: ./backend/servicio-sufragio
+    container_name: evoting-servicio-sufragio
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      NODE_ENV: production
+      DB_HOST: postgres-sufragio
+      DB_PORT: 5432
+      DB_NAME: db_sufragio
+      DB_USER: user_sufragio
+      DB_PASS: pass_sufragio
+      RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672
+      RABBITMQ_EXCHANGE: evoting_exchange
+      RABBITMQ_EXCHANGE_TYPE: topic
+      RABBITMQ_QUEUE_SUFRAGIO: sufragio.resultado
+    depends_on:
+      postgres-sufragio:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  servicio-padron:
+    build: ./backend/servicio-padron
+    container_name: evoting-servicio-padron
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      NODE_ENV: production
+      DB_HOST: postgres-padron
+      DB_PORT: 5432
+      DB_NAME: db_padron
+      DB_USER: user_padron
+      DB_PASS: pass_padron
+      RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672
+      RABBITMQ_EXCHANGE: evoting_exchange
+      RABBITMQ_EXCHANGE_TYPE: topic
+      RABBITMQ_QUEUE_PADRON: padron.verificar
+    depends_on:
+      postgres-padron:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  servicio-auditoria:
+    build: ./backend/servicio-auditoria
+    container_name: evoting-servicio-auditoria
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+      NODE_ENV: production
+      DB_HOST: postgres-auditoria
+      DB_PORT: 5432
+      DB_NAME: db_auditoria
+      DB_USER: user_auditoria
+      DB_PASS: pass_auditoria
+      RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672
+      RABBITMQ_EXCHANGE: evoting_exchange
+      RABBITMQ_EXCHANGE_TYPE: topic
+      RABBITMQ_QUEUE_AUDITORIA: auditoria.registrar
+    depends_on:
+      postgres-auditoria:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
 volumes:
   rabbitmq_data:
   postgres_sufragio_data:
