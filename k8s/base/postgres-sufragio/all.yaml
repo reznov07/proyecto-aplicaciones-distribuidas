@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-sufragio-pvc
+  labels:
+    app: postgres-sufragio
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-sufragio
+  labels:
+    app: postgres-sufragio
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: postgres-sufragio
+  template:
+    metadata:
+      labels:
+        app: postgres-sufragio
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: postgres-sufragio-credentials
+          volumeMounts:
+            - name: postgres-sufragio-data
+              mountPath: /var/lib/postgresql/data
+              subPath: pgdata   # evita el problema de "lost+found" en volumes recién creados
+            - name: init-sql
+              mountPath: /docker-entrypoint-initdb.d/init-sufragio.sql
+              subPath: init.sql
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "$(POSTGRES_USER)", "-d", "$(POSTGRES_DB)"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "$(POSTGRES_USER)", "-d", "$(POSTGRES_DB)"]
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: postgres-sufragio-data
+          persistentVolumeClaim:
+            claimName: postgres-sufragio-pvc
+        - name: init-sql
+          configMap:
+            name: init-sufragio-sql
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-sufragio
+  labels:
+    app: postgres-sufragio
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres-sufragio
+  ports:
+    - port: 5432
+      targetPort: 5432

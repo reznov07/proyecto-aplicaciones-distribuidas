@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: servicio-sufragio-config
+data:
+  PORT: "3001"
+  NODE_ENV: "production"
+  DB_HOST: "postgres-sufragio"
+  DB_PORT: "5432"
+  DB_NAME: "db_sufragio"
+  RABBITMQ_EXCHANGE: "evoting_exchange"
+  RABBITMQ_EXCHANGE_TYPE: "topic"
+  RABBITMQ_QUEUE_SUFRAGIO: "sufragio.resultado"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: servicio-sufragio
+  labels:
+    app: servicio-sufragio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: servicio-sufragio
+  template:
+    metadata:
+      labels:
+        app: servicio-sufragio
+    spec:
+      containers:
+        - name: servicio-sufragio
+          image: PLACEHOLDER/servicio-sufragio:latest   # sobrescrito por overlay de cada entorno
+          ports:
+            - containerPort: 3001
+          envFrom:
+            - configMapRef:
+                name: servicio-sufragio-config
+            - secretRef:
+                name: postgres-sufragio-credentials   # aporta DB_USER, DB_PASS
+            - secretRef:
+                name: rabbitmq-credentials             # aporta RABBITMQ_URL completa (con user/pass)
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: servicio-sufragio
+  labels:
+    app: servicio-sufragio
+spec:
+  type: ClusterIP
+  selector:
+    app: servicio-sufragio
+  ports:
+    - port: 3001
+      targetPort: 3001

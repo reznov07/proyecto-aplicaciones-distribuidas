@@ -1,0 +1,34 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: grupo6-qa   # <-- reemplazar "grupoX" por el número real de su grupo
+
+resources:
+  - ../../base
+  - ingress.yaml
+
+# Acá es donde el pipeline de QA (.github/workflows/qa.yml) debería
+# sobrescribir el tag de imagen automáticamente tras cada build (por ejemplo
+# con `kustomize edit set image` o sed en el propio workflow), apuntando al
+# registry real que usen (Docker Hub / GHCR). Mientras tanto, referencia
+# "latest" para poder probar el overlay manualmente.
+images:
+  - name: PLACEHOLDER/servicio-sufragio
+    newName: ghcr.io/reznov07/servicio-sufragio
+    newTag: latest
+  - name: PLACEHOLDER/servicio-padron
+    newName: ghcr.io/reznov07/servicio-padron
+    newTag: latest
+  - name: PLACEHOLDER/servicio-auditoria
+    newName: ghcr.io/reznov07/servicio-auditoria
+    newTag: latest
+
+# En QA basta con 1 réplica de cada servicio — no necesitamos alta
+# disponibilidad todavía, solo verificar que el flujo asíncrono funcione.
+replicas:
+  - name: servicio-sufragio
+    count: 1
+  - name: servicio-padron
+    count: 1
+  - name: servicio-auditoria
+    count: 1

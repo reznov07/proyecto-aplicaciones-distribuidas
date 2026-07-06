@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - secrets/secrets.yaml
+  - rabbitmq/pvc.yaml
+  - rabbitmq/deployment.yaml
+  - rabbitmq/service.yaml
+  - postgres-sufragio/all.yaml
+  - postgres-padron/all.yaml
+  - postgres-auditoria/all.yaml
+  - servicio-sufragio/all.yaml
+  - servicio-padron/all.yaml
+  - servicio-auditoria/all.yaml
+
+# Genera los ConfigMaps init-*-sql a partir de los mismos scripts que usa
+# docker-compose (db-init/). Kustomize les agrega un sufijo hash al nombre
+# y actualiza automáticamente las referencias en los Deployments de Postgres
+# que apuntan a "init-sufragio-sql", "init-padron-sql", "init-auditoria-sql".
+configMapGenerator:
+  - name: init-sufragio-sql
+    files:
+      - init.sql=../../db-init/init-sufragio.sql
+  - name: init-padron-sql
+    files:
+      - init.sql=../../db-init/init-padron.sql
+  - name: init-auditoria-sql
+    files:
+      - init.sql=../../db-init/init-auditoria.sql
+
+commonLabels:
+  proyecto: evoting
