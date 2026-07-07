@@ -13,20 +13,26 @@ resources:
   - servicio-padron/all.yaml
   - servicio-auditoria/all.yaml
 
-# Genera los ConfigMaps init-*-sql a partir de los mismos scripts que usa
-# docker-compose (db-init/). Kustomize les agrega un sufijo hash al nombre
-# y actualiza automáticamente las referencias en los Deployments de Postgres
-# que apuntan a "init-sufragio-sql", "init-padron-sql", "init-auditoria-sql".
+# Genera los ConfigMaps init-*-sql a partir de una copia local de los scripts
+# de db-init/ (Kustomize no permite referenciar archivos FUERA de la carpeta
+# donde vive este kustomization.yaml, por seguridad). Si editas db-init/*.sql,
+# recuerda volver a copiarlos acá:
+#   cp db-init/init-*.sql k8s/base/db-init/
+# Kustomize les agrega un sufijo hash al nombre y actualiza automáticamente
+# las referencias en los Deployments de Postgres que apuntan a
+# "init-sufragio-sql", "init-padron-sql", "init-auditoria-sql".
 configMapGenerator:
   - name: init-sufragio-sql
     files:
-      - init.sql=../../db-init/init-sufragio.sql
+      - init.sql=db-init/init-sufragio.sql
   - name: init-padron-sql
     files:
-      - init.sql=../../db-init/init-padron.sql
+      - init.sql=db-init/init-padron.sql
   - name: init-auditoria-sql
     files:
-      - init.sql=../../db-init/init-auditoria.sql
+      - init.sql=db-init/init-auditoria.sql
 
-commonLabels:
-  proyecto: evoting
+labels:
+  - includeSelectors: false
+    pairs:
+      proyecto: evoting
