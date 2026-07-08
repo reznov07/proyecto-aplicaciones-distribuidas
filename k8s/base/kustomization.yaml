@@ -12,6 +12,7 @@ resources:
   - servicio-sufragio/all.yaml
   - servicio-padron/all.yaml
   - servicio-auditoria/all.yaml
+  - frontend/all.yaml 
 
 # Genera los ConfigMaps init-*-sql a partir de una copia local de los scripts
 # de db-init/ (Kustomize no permite referenciar archivos FUERA de la carpeta

@@ -4,6 +4,7 @@ kind: Kustomization
 namespace: grupo6-qa   # <-- reemplazar "grupoX" por el número real de su grupo
 
 resources:
+  - namespace.yaml
   - ../../base
   - ingress.yaml
 
@@ -21,6 +22,9 @@ images:
     newTag: latest
   - name: PLACEHOLDER/servicio-auditoria
     newName: ghcr.io/reznov07/servicio-auditoria
+    newTag: latest
+  - name: PLACEHOLDER/frontend
+    newName: ghcr.io/reznov07/frontend
     newTag: latest
 
 # En QA basta con 1 réplica de cada servicio — no necesitamos alta

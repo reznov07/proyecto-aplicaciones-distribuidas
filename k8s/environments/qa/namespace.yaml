@@ -1,4 +1,4 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: grupoX-qa   # <-- reemplazar "grupoX" por el número real de su grupo
+  name: grupo6-qa

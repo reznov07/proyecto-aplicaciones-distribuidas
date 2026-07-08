@@ -1,5 +1,5 @@
 # Actúa como el "Acceso Único / API Gateway" que pide el enunciado:
-# un solo host (prod.grupoX.uta.cl) enruta por path hacia cada microservicio.
+# un solo host (prod.grupo6.uta.cl) enruta por path hacia cada microservicio.
 # Si más adelante arman un API Gateway propio (otro microservicio Express,
 # Kong, etc.), este Ingress apuntaría a ESE servicio en vez de a los 3 backends
 # directamente — pero para cumplir "acceso único mediante nombre de dominio,
@@ -30,6 +30,10 @@ spec:
                 name: servicio-auditoria
                 port:
                   number: 3003
-          # servicio-padron no expone REST público (solo consume eventos),
-          # por eso no tiene ruta acá. Si más adelante el frontend se agrega,
-          # su path (ej. "/") se suma aquí también.
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

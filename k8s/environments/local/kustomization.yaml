@@ -24,3 +24,6 @@ images:
   - name: PLACEHOLDER/servicio-auditoria
     newName: servicio-auditoria
     newTag: local
+  - name: PLACEHOLDER/frontend
+    newName: frontend
+    newTag: local
