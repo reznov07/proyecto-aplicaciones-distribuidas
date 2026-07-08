@@ -140,6 +140,15 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  frontend:
+    build: ./frontend
+    container_name: evoting-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - servicio-sufragio
+      - servicio-auditoria
+
 volumes:
   rabbitmq_data:
   postgres_sufragio_data:

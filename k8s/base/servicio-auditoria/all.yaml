@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: servicio-auditoria-config
+data:
+  PORT: "3003"
+  NODE_ENV: "production"
+  DB_HOST: "postgres-auditoria"
+  DB_PORT: "5432"
+  DB_NAME: "db_auditoria"
+  RABBITMQ_EXCHANGE: "evoting_exchange"
+  RABBITMQ_EXCHANGE_TYPE: "topic"
+  RABBITMQ_QUEUE_AUDITORIA: "auditoria.registrar"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: servicio-auditoria
+  labels:
+    app: servicio-auditoria
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: servicio-auditoria
+  template:
+    metadata:
+      labels:
+        app: servicio-auditoria
+    spec:
+      containers:
+        - name: servicio-auditoria
+          image: PLACEHOLDER/servicio-auditoria:latest   # sobrescrito por overlay de cada entorno
+          ports:
+            - containerPort: 3003
+          envFrom:
+            - configMapRef:
+                name: servicio-auditoria-config
+            - secretRef:
+                name: postgres-auditoria-credentials
+            - secretRef:
+                name: rabbitmq-credentials
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3003
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3003
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: servicio-auditoria
+  labels:
+    app: servicio-auditoria
+spec:
+  type: ClusterIP
+  selector:
+    app: servicio-auditoria
+  ports:
+    - port: 3003
+      targetPort: 3003

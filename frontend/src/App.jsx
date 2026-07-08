@@ -1,13 +1,11 @@
-import './App.css'
-
-
+import './App.css';
 import { useState, useRef } from 'react';
 import { getEleccionActiva, votar as votarApi, consultarEstado } from './api';
 
 const validarRUT = (rut) => /^[0-9]{7,8}-[0-9kK]$/.test(rut);
 
 export default function App() {
-  const [vista, setVista] = useState('form'); // form | papeleta | estado | resultado
+  const [vista, setVista] = useState('form');
   const [rut, setRut] = useState('');
   const [rutError, setRutError] = useState('');
   const [cargando, setCargando] = useState(false);
@@ -108,8 +106,8 @@ export default function App() {
           </div>
           <div className="candidatos-grid">
             {candidatos.map((c) => (
-              <div key={c.id} className={`candidato-card ${seleccionado === c.id ? 'selected' : ''}`}
-                onClick={() => setSeleccionado(c.id)}>
+              <div key={c.id} className={`candidato-card ${seleccionado === c.candidatoId ? 'selected' : ''}`}
+                onClick={() => setSeleccionado(c.candidatoId)}>
                 <div className="candidato-nombre">{c.nombre}</div>
                 <div className="candidato-partido">{c.partido}</div>
               </div>
@@ -117,28 +115,28 @@ export default function App() {
           </div>
           <div className="error-message">{votoError}</div>
           <div className="button-group">
-            <button className="btn-success" onClick={handleVotar}>✅ Votar</button>
+            <button className="btn-success" onClick={handleVotar}>Emitir Voto</button>
             <button className="btn-secondary" onClick={resetear}>Cancelar</button>
           </div>
         </div>
       )}
 
       {vista === 'estado' && (
-        <div className="card">
+        <div className="card-estado card">
           <h2>Estado de tu voto</h2>
           <div className="spinner" />
-          <p>{estadoTexto}</p>
+          <p id="estadoTexto">{estadoTexto}</p>
           <button className="btn-secondary" onClick={resetear}>Volver al inicio</button>
         </div>
       )}
 
       {vista === 'resultado' && (
         <div className="card">
-          <h2>Resultado de tu voto</h2>
+          <h2>Resultado del proceso</h2>
           <div className={`resultado-texto ${resultado === 'APROBADO' ? 'aprobado' : 'rechazado'}`}>
-            {resultado === 'APROBADO' ? '✅ ¡Voto Aprobado!' : '❌ Voto Rechazado'}
+            {resultado === 'APROBADO' ? 'Voto Aprobado' : 'Voto Rechazado'}
           </div>
-          <button className="btn-primary" onClick={resetear}>Votar nuevamente</button>
+          <button className="btn-primary" onClick={resetear}>Finalizar</button>
         </div>
       )}
     </div>

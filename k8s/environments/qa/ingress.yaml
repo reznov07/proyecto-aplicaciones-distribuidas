@@ -1,0 +1,39 @@
+# Actúa como el "Acceso Único / API Gateway" que pide el enunciado:
+# un solo host (qa.grupo6.uta.cl) enruta por path hacia cada microservicio.
+# Si más adelante arman un API Gateway propio (otro microservicio Express,
+# Kong, etc.), este Ingress apuntaría a ESE servicio en vez de a los 3 backends
+# directamente — pero para cumplir "acceso único mediante nombre de dominio,
+# sin puertos expuestos" esto ya es válido.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: evoting-ingress-qa
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  ingressClassName: traefik   # K3s trae Traefik por defecto; cambiar si usan nginx-ingress
+  rules:
+    - host: qa.grupo6.uta.cl   # <-- reemplazar "grupoX" por el número real de su grupo
+      http:
+        paths:
+          - path: /api/sufragio
+            pathType: Prefix
+            backend:
+              service:
+                name: servicio-sufragio
+                port:
+                  number: 3001
+          - path: /api/auditoria
+            pathType: Prefix
+            backend:
+              service:
+                name: servicio-auditoria
+                port:
+                  number: 3003
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

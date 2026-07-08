@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-padron-pvc
+  labels:
+    app: postgres-padron
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-padron
+  labels:
+    app: postgres-padron
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: postgres-padron
+  template:
+    metadata:
+      labels:
+        app: postgres-padron
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: postgres-padron-credentials
+          volumeMounts:
+            - name: postgres-padron-data
+              mountPath: /var/lib/postgresql/data
+              subPath: pgdata   # evita el problema de "lost+found" en volumes recién creados
+            - name: init-sql
+              mountPath: /docker-entrypoint-initdb.d/init-padron.sql
+              subPath: init.sql
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "$(POSTGRES_USER)", "-d", "$(POSTGRES_DB)"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "$(POSTGRES_USER)", "-d", "$(POSTGRES_DB)"]
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: postgres-padron-data
+          persistentVolumeClaim:
+            claimName: postgres-padron-pvc
+        - name: init-sql
+          configMap:
+            name: init-padron-sql
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-padron
+  labels:
+    app: postgres-padron
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres-padron
+  ports:
+    - port: 5432
+      targetPort: 5432
