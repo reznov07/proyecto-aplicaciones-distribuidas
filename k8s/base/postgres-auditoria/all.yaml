@@ -40,7 +40,7 @@ spec:
           volumeMounts:
             - name: postgres-auditoria-data
               mountPath: /var/lib/postgresql/data
-              subPath: pgdata   # evita el problema de "lost+found" en volumes recién creados
+              subPath: pgdata
             - name: init-sql
               mountPath: /docker-entrypoint-initdb.d/init-auditoria.sql
               subPath: init.sql
@@ -82,3 +82,59 @@ spec:
   ports:
     - port: 5432
       targetPort: 5432
+---
+# ==========================================
+# CONFIGURACIÓN DE RESPALDOS AUTOMÁTICOS
+# ==========================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-auditoria-backup-pvc
+  labels:
+    app: postgres-auditoria
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-postgres-auditoria
+  labels:
+    app: postgres-auditoria
+spec:
+  schedule: "*/10 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: backup-postgres-auditoria
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: pg-backup
+              image: postgres:15-alpine
+              envFrom:
+                - secretRef:
+                    name: postgres-auditoria-credentials
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  echo "Iniciando respaldo de DB Auditoría..."
+                  ARCHIVO="/backups/auditoria_$(date +%Y%m%d_%H%M%S).sql"
+                  pg_dump -h postgres-auditoria -U $POSTGRES_USER -d $POSTGRES_DB -f $ARCHIVO
+                  echo "Respaldo exitoso en $ARCHIVO"
+                  ls -t /backups/auditoria_*.sql | tail -n +7 | xargs -r rm --
+              volumeMounts:
+                - name: backup-data
+                  mountPath: /backups
+          volumes:
+            - name: backup-data
+              persistentVolumeClaim:
+                claimName: postgres-auditoria-backup-pvc
