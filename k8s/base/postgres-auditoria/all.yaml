@@ -1,0 +1,140 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-auditoria-pvc
+  labels:
+    app: postgres-auditoria
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-auditoria
+  labels:
+    app: postgres-auditoria
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: postgres-auditoria
+  template:
+    metadata:
+      labels:
+        app: postgres-auditoria
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: postgres-auditoria-credentials
+          volumeMounts:
+            - name: postgres-auditoria-data
+              mountPath: /var/lib/postgresql/data
+              subPath: pgdata
+            - name: init-sql
+              mountPath: /docker-entrypoint-initdb.d/init-auditoria.sql
+              subPath: init.sql
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "$(POSTGRES_USER)", "-d", "$(POSTGRES_DB)"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "$(POSTGRES_USER)", "-d", "$(POSTGRES_DB)"]
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: postgres-auditoria-data
+          persistentVolumeClaim:
+            claimName: postgres-auditoria-pvc
+        - name: init-sql
+          configMap:
+            name: init-auditoria-sql
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-auditoria
+  labels:
+    app: postgres-auditoria
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres-auditoria
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+# ==========================================
+# CONFIGURACIÓN DE RESPALDOS AUTOMÁTICOS
+# ==========================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-auditoria-backup-pvc
+  labels:
+    app: postgres-auditoria
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-postgres-auditoria
+  labels:
+    app: postgres-auditoria
+spec:
+  schedule: "*/10 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: backup-postgres-auditoria
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: pg-backup
+              image: postgres:15-alpine
+              envFrom:
+                - secretRef:
+                    name: postgres-auditoria-credentials
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  echo "Iniciando respaldo de DB Auditoría..."
+                  ARCHIVO="/backups/auditoria_$(date +%Y%m%d_%H%M%S).sql"
+                  pg_dump -h postgres-auditoria -U $POSTGRES_USER -d $POSTGRES_DB -f $ARCHIVO
+                  echo "Respaldo exitoso en $ARCHIVO"
+                  ls -t /backups/auditoria_*.sql | tail -n +7 | xargs -r rm --
+              volumeMounts:
+                - name: backup-data
+                  mountPath: /backups
+          volumes:
+            - name: backup-data
+              persistentVolumeClaim:
+                claimName: postgres-auditoria-backup-pvc

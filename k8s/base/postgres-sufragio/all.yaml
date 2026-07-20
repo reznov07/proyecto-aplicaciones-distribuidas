@@ -1,0 +1,141 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-sufragio-pvc
+  labels:
+    app: postgres-sufragio
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-sufragio
+  labels:
+    app: postgres-sufragio
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: postgres-sufragio
+  template:
+    metadata:
+      labels:
+        app: postgres-sufragio
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: postgres-sufragio-credentials
+          volumeMounts:
+            - name: postgres-sufragio-data
+              mountPath: /var/lib/postgresql/data
+              subPath: pgdata
+            - name: init-sql
+              mountPath: /docker-entrypoint-initdb.d/init-sufragio.sql
+              subPath: init.sql
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "$(POSTGRES_USER)", "-d", "$(POSTGRES_DB)"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "$(POSTGRES_USER)", "-d", "$(POSTGRES_DB)"]
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: postgres-sufragio-data
+          persistentVolumeClaim:
+            claimName: postgres-sufragio-pvc
+        - name: init-sql
+          configMap:
+            name: init-sufragio-sql
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-sufragio
+  labels:
+    app: postgres-sufragio
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres-sufragio
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+# ==========================================
+# CONFIGURACIÓN DE RESPALDOS AUTOMÁTICOS
+# ==========================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-sufragio-backup-pvc
+  labels:
+    app: postgres-sufragio
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-postgres-sufragio
+  labels:
+    app: postgres-sufragio
+spec:
+  schedule: "*/10 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: backup-postgres-sufragio
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: pg-backup
+              image: postgres:15-alpine
+              envFrom:
+                - secretRef:
+                    name: postgres-sufragio-credentials
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  echo "Iniciando respaldo de DB Sufragio..."
+                  ARCHIVO="/backups/sufragio_$(date +%Y%m%d_%H%M%S).sql"
+                  pg_dump -h postgres-sufragio -U $POSTGRES_USER -d $POSTGRES_DB -f $ARCHIVO
+                  echo "Respaldo exitoso en $ARCHIVO"
+                  # Limpieza: Mantiene solo los últimos 6 respaldos para no saturar el disco
+                  ls -t /backups/sufragio_*.sql | tail -n +7 | xargs -r rm --
+              volumeMounts:
+                - name: backup-data
+                  mountPath: /backups
+          volumes:
+            - name: backup-data
+              persistentVolumeClaim:
+                claimName: postgres-sufragio-backup-pvc
