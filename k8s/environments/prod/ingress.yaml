@@ -13,7 +13,7 @@ metadata:
 spec:
   ingressClassName: traefik   # K3s trae Traefik por defecto; cambiar si usan nginx-ingress
   rules:
-    - host: prod.grupo6.uta.cl   # <-- reemplazar "grupoX" por el número real de su grupo
+    - host: evoting-grupo6.mooo.com   
       http:
         paths:
           - path: /api/sufragio
