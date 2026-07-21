@@ -18,6 +18,7 @@ metadata:
   name: servicio-padron
   labels:
     app: servicio-padron
+    tier: backend 
 spec:
   replicas: 1
   selector:

@@ -27,6 +27,7 @@ spec:
     metadata:
       labels:
         app: servicio-auditoria
+        tier: backend 
     spec:
       containers:
         - name: servicio-auditoria

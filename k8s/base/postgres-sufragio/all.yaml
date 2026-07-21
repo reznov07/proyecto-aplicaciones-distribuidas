@@ -111,31 +111,34 @@ spec:
   jobTemplate:
     spec:
       template:
-        metadata:
-          labels:
-            app: backup-postgres-sufragio
         spec:
-          restartPolicy: OnFailure
           containers:
-            - name: pg-backup
-              image: postgres:15-alpine
-              envFrom:
-                - secretRef:
-                    name: postgres-sufragio-credentials
-              command:
-                - /bin/sh
-                - -c
-                - |
-                  echo "Iniciando respaldo de DB Sufragio..."
-                  ARCHIVO="/backups/sufragio_$(date +%Y%m%d_%H%M%S).sql"
-                  pg_dump -h postgres-sufragio -U $POSTGRES_USER -d $POSTGRES_DB -f $ARCHIVO
-                  echo "Respaldo exitoso en $ARCHIVO"
-                  # Limpieza: Mantiene solo los últimos 6 respaldos para no saturar el disco
-                  ls -t /backups/sufragio_*.sql | tail -n +7 | xargs -r rm --
-              volumeMounts:
-                - name: backup-data
-                  mountPath: /backups
+          - name: pg-backup
+            image: postgres:15-alpine
+            env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets 
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_USER
+              value: "postgres"
+            - name: POSTGRES_DB
+              value: "sufragio"
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Iniciando respaldo de DB Sufragio..."
+              ARCHIVO="/backups/sufragio_$(date +%Y%m%d_%H%M%S).sql"
+              pg_dump -h postgres-sufragio -U $POSTGRES_USER -d $POSTGRES_DB -f $ARCHIVO
+              echo "Respaldo exitoso en $ARCHIVO"
+              ls -t /backups/sufragio_*.sql | tail -n +7 | xargs -r rm --
+            volumeMounts:
+            - name: data-storage
+              mountPath: /backups
+          restartPolicy: OnFailure
           volumes:
-            - name: backup-data
-              persistentVolumeClaim:
-                claimName: postgres-sufragio-backup-pvc
+          - name: data-storage
+            persistentVolumeClaim:
+              claimName: postgres-sufragio-pvc

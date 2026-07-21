@@ -18,6 +18,7 @@ metadata:
   name: servicio-sufragio
   labels:
     app: servicio-sufragio
+    tier: backend 
 spec:
   replicas: 1
   selector:
