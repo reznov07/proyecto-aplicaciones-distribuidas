@@ -8,7 +8,6 @@ El proceso inicia cuando un ciudadano ingresa su identificador (`ciudadanoId`) y
 
 La solución utiliza una arquitectura de microservicios con comunicación asíncrona basada en eventos (RabbitMQ), cada uno con su propia base de datos PostgreSQL aislada.
 
-> **Nota de estado:** este documento describe la arquitectura tal como está implementada en la rama `develop` a la fecha. Hay un punto pendiente marcado explícitamente en la sección 3 (cierre del ciclo con el evento `voto.completado`) que aún no está implementado.
 
 ## 2. Arquitectura del Sistema
 
