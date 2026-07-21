@@ -144,8 +144,6 @@ Publicado por Padrón Electoral, consumido en paralelo por Gestión de Sufragio 
 }
 ```
 
-### 4.3 Evento `voto.completado` — pendiente de implementar
-
 
 ## 5. Bases de Datos
 
