@@ -7,10 +7,12 @@ const EXCHANGE          = process.env.RABBITMQ_EXCHANGE          || 'evoting_exc
 const EXCHANGE_TYPE     = process.env.RABBITMQ_EXCHANGE_TYPE     || 'topic';
 const QUEUE_AUDITORIA   = process.env.RABBITMQ_QUEUE_AUDITORIA   || 'auditoria.registrar';
 
-const connectRabbitMQ = async (retries = 5, delay = 3000) => {
+const connectRabbitMQ = async (retries = 10, delay = 5000) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      connection = await amqplib.connect(process.env.RABBITMQ_URL);
+      console.log(`[RabbitMQ] Intentando conectar (Intento ${attempt}/${retries})...`);
+      
+      connection = await amqplib.connect(process.env.RABBITMQ_URL || 'amqp://rabbitmq:5672');
       channel    = await connection.createChannel();
 
       // Exchange compartido — debe coincidir con servicio-sufragio / servicio-padron
@@ -29,15 +31,19 @@ const connectRabbitMQ = async (retries = 5, delay = 3000) => {
       // Procesar de a un mensaje a la vez (fair dispatch)
       channel.prefetch(1);
 
-      console.log(`[RabbitMQ] Conectado. Exchange "${EXCHANGE}" listo.`);
-      console.log(`[RabbitMQ] Cola "${QUEUE_AUDITORIA}" vinculada → voto.verificado_anonimo`);
+      console.log(`[RabbitMQ] Conectado exitosamente. Exchange "${EXCHANGE}" listo.`);
+      console.log(`[RabbitMQ] Cola "${QUEUE_AUDITORIA}" vinculada -> voto.verificado_anonimo`);
 
       connection.on('error', (err) =>
-        console.error('[RabbitMQ] Error en conexión:', err.message)
+        console.error('[RabbitMQ] Error en la conexión:', err.message)
       );
+
       connection.on('close', () => {
-        console.warn('[RabbitMQ] Conexión cerrada. Reconectando...');
-        setTimeout(() => connectRabbitMQ(), delay);
+        console.warn('[RabbitMQ] Conexión cerrada con el broker. Reintentando en breve...');
+        // Limpiamos referencias antes de reconectar
+        connection = null;
+        channel = null;
+        setTimeout(() => connectRabbitMQ(retries, delay), delay);
       });
 
       return { connection, channel };
