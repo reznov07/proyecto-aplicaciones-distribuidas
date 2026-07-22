@@ -27,10 +27,11 @@ spec:
     metadata:
       labels:
         app: servicio-auditoria
+        tier: backend
     spec:
       containers:
         - name: servicio-auditoria
-          image: PLACEHOLDER/servicio-auditoria:latest   # sobrescrito por overlay de cada entorno
+          image: PLACEHOLDER/servicio-auditoria:latest  
           ports:
             - containerPort: 3003
           envFrom:
