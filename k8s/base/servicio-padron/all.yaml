@@ -27,10 +27,11 @@ spec:
     metadata:
       labels:
         app: servicio-padron
+        tier: backend
     spec:
       containers:
         - name: servicio-padron
-          image: PLACEHOLDER/servicio-padron:latest   # sobrescrito por overlay de cada entorno
+          image: PLACEHOLDER/servicio-padron:latest  
           ports:
             - containerPort: 3002
           envFrom:
