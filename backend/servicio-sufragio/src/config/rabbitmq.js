@@ -7,17 +7,16 @@ const EXCHANGE          = process.env.RABBITMQ_EXCHANGE          || 'evoting_exc
 const EXCHANGE_TYPE     = process.env.RABBITMQ_EXCHANGE_TYPE     || 'topic';
 const QUEUE_SUFRAGIO    = process.env.RABBITMQ_QUEUE_SUFRAGIO    || 'sufragio.resultado';
 
-const connectRabbitMQ = async (retries = 5, delay = 3000) => {
+const connectRabbitMQ = async (retries = 10, delay = 5000) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      connection = await amqplib.connect(process.env.RABBITMQ_URL);
+      console.log(`[RabbitMQ] Intentando conectar Sufragio (Intento ${attempt}/${retries})...`);
+
+      connection = await amqplib.connect(process.env.RABBITMQ_URL || 'amqp://rabbitmq:5672');
       channel    = await connection.createChannel();
 
-      // Exchange compartido — debe coincidir con servicio-padron / servicio-auditoria
       await channel.assertExchange(EXCHANGE, EXCHANGE_TYPE, { durable: true });
 
-      // Cola exclusiva de sufragio: recibe el resultado final ya verificado
-      // por servicio-padron, para cerrar el ciclo de la sesión (INICIADO → APROBADO/RECHAZADO)
       await channel.assertQueue(QUEUE_SUFRAGIO, {
         durable: true,
         arguments: {
@@ -27,18 +26,20 @@ const connectRabbitMQ = async (retries = 5, delay = 3000) => {
 
       await channel.bindQueue(QUEUE_SUFRAGIO, EXCHANGE, 'voto.verificado_anonimo');
 
-      // Procesar de a un mensaje a la vez (fair dispatch)
       channel.prefetch(1);
 
-      console.log(`[RabbitMQ] Conectado. Exchange "${EXCHANGE}" listo.`);
-      console.log(`[RabbitMQ] Cola "${QUEUE_SUFRAGIO}" vinculada → voto.verificado_anonimo`);
+      console.log(`[RabbitMQ] Conectado exitosamente. Exchange "${EXCHANGE}" listo.`);
+      console.log(`[RabbitMQ] Cola "${QUEUE_SUFRAGIO}" vinculada -> voto.verificado_anonimo`);
 
       connection.on('error', (err) =>
-        console.error('[RabbitMQ] Error en conexión:', err.message)
+        console.error('[RabbitMQ] Error en la conexión de Sufragio:', err.message)
       );
+
       connection.on('close', () => {
-        console.warn('[RabbitMQ] Conexión cerrada. Reconectando...');
-        setTimeout(() => connectRabbitMQ(), delay);
+        console.warn('[RabbitMQ] Conexión cerrada con el broker. Reintentando en breve...');
+        connection = null;
+        channel = null;
+        setTimeout(() => connectRabbitMQ(retries, delay), delay);
       });
 
       return { connection, channel };
@@ -54,7 +55,7 @@ const connectRabbitMQ = async (retries = 5, delay = 3000) => {
   }
 };
 
-const getChannel  = () => {
+const getChannel = () => {
   if (!channel) throw new Error('[RabbitMQ] Canal no inicializado. Llama a connectRabbitMQ primero.');
   return channel;
 };
