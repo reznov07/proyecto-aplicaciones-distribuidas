@@ -15,10 +15,8 @@ const connectRabbitMQ = async (retries = 10, delay = 5000) => {
       connection = await amqplib.connect(process.env.RABBITMQ_URL || 'amqp://rabbitmq:5672');
       channel    = await connection.createChannel();
 
-      // Exchange compartido — debe coincidir con servicio-sufragio / servicio-padron
       await channel.assertExchange(EXCHANGE, EXCHANGE_TYPE, { durable: true });
 
-      // Cola exclusiva de auditoría: recibe eventos 'voto.verificado_anonimo'
       await channel.assertQueue(QUEUE_AUDITORIA, {
         durable: true,
         arguments: {
@@ -28,7 +26,6 @@ const connectRabbitMQ = async (retries = 10, delay = 5000) => {
 
       await channel.bindQueue(QUEUE_AUDITORIA, EXCHANGE, 'voto.verificado_anonimo');
 
-      // Procesar de a un mensaje a la vez (fair dispatch)
       channel.prefetch(1);
 
       console.log(`[RabbitMQ] Conectado exitosamente. Exchange "${EXCHANGE}" listo.`);
@@ -40,7 +37,6 @@ const connectRabbitMQ = async (retries = 10, delay = 5000) => {
 
       connection.on('close', () => {
         console.warn('[RabbitMQ] Conexión cerrada con el broker. Reintentando en breve...');
-        // Limpiamos referencias antes de reconectar
         connection = null;
         channel = null;
         setTimeout(() => connectRabbitMQ(retries, delay), delay);
