@@ -27,19 +27,20 @@ spec:
     metadata:
       labels:
         app: servicio-sufragio
+        tier: backend
     spec:
       containers:
         - name: servicio-sufragio
-          image: PLACEHOLDER/servicio-sufragio:latest   # sobrescrito por overlay de cada entorno
+          image: PLACEHOLDER/servicio-sufragio:latest   
           ports:
             - containerPort: 3001
           envFrom:
             - configMapRef:
                 name: servicio-sufragio-config
             - secretRef:
-                name: postgres-sufragio-credentials   # aporta DB_USER, DB_PASS
+                name: postgres-sufragio-credentials  
             - secretRef:
-                name: rabbitmq-credentials             # aporta RABBITMQ_URL completa (con user/pass)
+                name: rabbitmq-credentials            
           readinessProbe:
             httpGet:
               path: /health
