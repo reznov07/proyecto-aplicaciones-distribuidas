@@ -40,18 +40,18 @@ spec:
           volumeMounts:
             - name: postgres-padron-data
               mountPath: /var/lib/postgresql/data
-              subPath: pgdata   # evita el problema de "lost+found" en volumes recién creados
+              subPath: pgdata   # evita el problema de "lost+found"
             - name: init-sql
               mountPath: /docker-entrypoint-initdb.d/init-padron.sql
               subPath: init.sql
           readinessProbe:
             exec:
-              command: ["pg_isready", "-U", "$(POSTGRES_USER)", "-d", "$(POSTGRES_DB)"]
+              command: ["pg_isready", "-h", "localhost"]
             initialDelaySeconds: 10
             periodSeconds: 10
           livenessProbe:
             exec:
-              command: ["pg_isready", "-U", "$(POSTGRES_USER)", "-d", "$(POSTGRES_DB)"]
+              command: ["pg_isready", "-h", "localhost"]
             initialDelaySeconds: 20
             periodSeconds: 20
           resources:
@@ -82,3 +82,45 @@ spec:
   ports:
     - port: 5432
       targetPort: 5432
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-postgres-padron
+  labels:
+    app: backup-postgres-padron
+spec:
+  schedule: "*/10 * * * *"  
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: postgres-backup
+              image: postgres:15-alpine
+              envFrom:
+                - secretRef:
+                    name: postgres-padron-credentials
+              env:
+                - name: PGHOST
+                  value: postgres-padron
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  echo "Iniciando respaldo de base de datos Padrón..."
+                  DATE=$(date +%Y%m%d_%H%M%S)
+                  pg_dump -h $PGHOST -U $POSTGRES_USER -d $POSTGRES_DB > /backups/backup_padron_$DATE.sql
+                  echo "Respaldo completado exitosamente: backup_padron_$DATE.sql"
+              volumeMounts:
+                - name: postgres-padron-data
+                  mountPath: /backups
+                  subPath: backups
+          restartPolicy: OnFailure
+          volumes:
+            - name: postgres-padron-data
+              persistentVolumeClaim:
+                claimName: postgres-padron-pvc
