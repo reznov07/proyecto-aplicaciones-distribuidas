@@ -20,7 +20,8 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: Recreate
+    type: Recreate   # Stateful: PVC ReadWriteOnce permite solo 1 Pod escribiendo a la vez.
+                     # RollingUpdate no aplica — no se puede tener cero downtime en DB con PVC.
   selector:
     matchLabels:
       app: postgres-sufragio
@@ -119,7 +120,7 @@ spec:
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: db-secrets 
+                  name: postgres-sufragio-credentials
                   key: POSTGRES_PASSWORD
             - name: POSTGRES_USER
               value: "postgres"
@@ -141,4 +142,4 @@ spec:
           volumes:
           - name: data-storage
             persistentVolumeClaim:
-              claimName: postgres-sufragio-pvc
+              claimName: postgres-sufragio-backup-pvc

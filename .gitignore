@@ -32,6 +32,7 @@ coverage/
 # ── Kubernetes: nunca subir secrets con valores reales ──────────────
 k8s/**/secret*.local.yaml
 k8s/**/*.secret.yaml
+k8s/**/secrets.yaml
 
 # ── Terraform / infra local, si se llega a usar ─────────────────────
 *.tfstate

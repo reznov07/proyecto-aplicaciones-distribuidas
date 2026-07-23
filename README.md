@@ -260,11 +260,12 @@ kubectl -n <ns> logs -l app=servicio-auditoria --tail=100 -f
 ### 8.3 Verificar RabbitMQ y sus colas
 
 ```bash
-kubectl -n <ns> port-forward svc/rabbitmq 15672:15672
-# abrir http://localhost:15672 (usuario/clave: ver k8s/base/secrets/secrets.yaml)
-```
+# Ver colas y cantidad de mensajes
+kubectl -n <ns> exec deploy/rabbitmq -- rabbitmqctl list_queues name messages messages_ready
 
-Desde el panel de administración se pueden inspeccionar las colas `padron.verificar`, `sufragio.resultado` y `auditoria.registrar`, y su respectiva `evoting_exchange.dlx` para revisar mensajes muertos.
+# Ver bindings del exchange
+kubectl -n <ns> exec deploy/rabbitmq -- rabbitmqctl list_bindings
+```
 
 ### 8.4 Verificar una base de datos
 
@@ -290,9 +291,10 @@ El sistema ejecuta respaldos automáticos intra-clúster de las 3 bases de datos
 1. **Verificar la programación de los CronJobs:**
    `kubectl get cronjobs -n grupo6-prod`
 
-2. **Certificar el almacenamiento físico (Ejemplo DB Padrón):**
-   Obtenga el pod de la base de datos y revise el volumen persistente:
-   `kubectl exec -it <NOMBRE_POD_POSTGRES_PADRON> -n grupo6-prod -- ls -lh /backups`
+2. **Certificar el almacenamiento físico (Ejemplo DB Sufragio):**
+   ```bash
+   kubectl exec deploy/postgres-sufragio -n grupo6-prod -- ls -lh /backups
+   ```
 
 ### 8.7 Trazas Unificadas (Logging Centralizado)
 Para observar el flujo asíncrono de los JSON viajando por RabbitMQ sin tener que saltar de contenedor en contenedor, ejecute este comando para seguir todos los logs del backend productivo en tiempo real:

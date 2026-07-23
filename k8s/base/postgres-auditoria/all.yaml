@@ -119,7 +119,7 @@ spec:
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: db-secrets
+                  name: postgres-auditoria-credentials
                   key: POSTGRES_PASSWORD
             - name: POSTGRES_USER
               value: "postgres"
@@ -141,4 +141,4 @@ spec:
           volumes:
           - name: data-storage
             persistentVolumeClaim:
-              claimName: postgres-auditoria-pvc
+              claimName: postgres-auditoria-backup-pvc
