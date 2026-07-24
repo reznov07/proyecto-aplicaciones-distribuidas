@@ -1,0 +1,47 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: checksum-postgres-sufragio
+  labels:
+    app: postgres-sufragio
+    app: checksum
+spec:
+  schedule: "*/10 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: checksum
+            image: postgres:15-alpine
+            env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-sufragio-credentials
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_USER
+              value: "postgres"
+            - name: POSTGRES_DB
+              value: "sufragio"
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Calculando checksum de DB Sufragio..."
+              FECHA=$(date +%Y%m%d_%H%M%S)
+              pg_dump -h postgres-sufragio -U $POSTGRES_USER -d $POSTGRES_DB | sha256sum > /checksums/sufragio_checksum_$FECHA.sha256
+              cp /checksums/sufragio_checksum_$FECHA.sha256 /checksums/sufragio_latest.sha256
+              echo "Checksum guardado: sufragio_checksum_$FECHA.sha256"
+              echo "SHA256: $(cat /checksums/sufragio_checksum_$FECHA.sha256)"
+              # Mantener solo los últimos 12 checksums (2 horas de historia)
+              ls -t /checksums/sufragio_checksum_*.sha256 | tail -n +13 | xargs -r rm --
+            volumeMounts:
+            - name: checksums-storage
+              mountPath: /checksums
+          restartPolicy: OnFailure
+          volumes:
+          - name: checksums-storage
+            persistentVolumeClaim:
+              claimName: checksums-pvc
