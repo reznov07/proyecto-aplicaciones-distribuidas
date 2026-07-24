@@ -13,11 +13,7 @@ resources:
   - servicio-sufragio/all.yaml
   - servicio-padron/all.yaml
   - servicio-auditoria/all.yaml
-  - frontend/all.yaml
-  - cronjobs/pvc-checksums.yaml
-  - cronjobs/checksum-sufragio.yaml
-  - cronjobs/checksum-padron.yaml
-  - cronjobs/checksum-auditoria.yaml 
+  - frontend/all.yaml 
 
 
 configMapGenerator:
